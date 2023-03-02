@@ -32,10 +32,11 @@ usethis::create_github_token()
 #where you’ll give your token a name and copy it (don’t lose it because 
 #it will never appear again!).
 # Token_name : M2_CRC_Immunex_master_project_I2P 
-# Token : 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
+# Token : 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
 gitcreds::gitcreds_set()
 
 usethis::use_git()
 usethis::use_github()
 
+use_git_remote("origin", url = NULL, overwrite = TRUE)
 
