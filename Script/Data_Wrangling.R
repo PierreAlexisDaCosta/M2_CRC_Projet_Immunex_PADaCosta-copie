@@ -1,5 +1,7 @@
 # Load packages ####
 source("./Script/Packages.R")
+source("./Script/Function.R")
+
 
 # set.seed ####
 set.seed(123)
@@ -35,13 +37,30 @@ pre_wrangling_clinical_data <-
   select(-`date sortie 2`) %>%
   select(-`Bloc intérêt T`)%>%
   select(-`Bloc intérêt N`) %>%
-  select(-`TRT RECIDIVE`)
+  select(-c(TO20T:sci14)) %>%
+  select(-`TRT RECIDIVE`) %>%
+  select(-`date récidive`) %>%
+  filter(`antécédents immunosuppression` == 5)
+
+view(pre_wrangling_clinical_data)
+
 
 # NA count by column ####
 
 NA_col_clinical <-
-  colSums(is.na(pre_wrangling_clinical_data)) %>%
-  as.data.frame()
+  colSums(is.na(wrangling_clinical_data2)) %>%
+  as.data.frame() %>%
+  rownames_to_column()
+
+NA_row_clinical <-
+  colSums(is.na(as.data.frame(wrangling_clinical_data2))) %>%
+  as.data.frame() %>%
+  rownames_to_column()
+
+#view(NA_row_clinical)
+#NA_row_clinical %>%
+#  writexl::write_xlsx("./Preprocessed_data/NA_row_clinical.xlsx")
+
 #view(NA_col_clinical)
 wrangling_clinical_data <-
   pre_wrangling_clinical_data %>%
@@ -121,19 +140,6 @@ wrangling_clinical_data$`dyspnée MRCS` <-
 wrangling_clinical_data$`si pT3 lésion principale` <-
   as.numeric(wrangling_clinical_data$`si pT3 lésion principale`)
 
-wrangling_clinical_data$`sct14` <-
-  ifelse(wrangling_clinical_data$`sct14` == "due", 
-       yes = 2,
-       ifelse(wrangling_clinical_data$`sct14` == "unoqu",
-              yes = 1,
-              ifelse(wrangling_clinical_data$`sct14` == "zero",
-                     yes = 0,
-                     no= wrangling_clinical_data$`sct14`
-                     )))
-
-wrangling_clinical_data$`sct14` <-
-  as.numeric(wrangling_clinical_data$`sct14`)
-
 wrangling_clinical_data$`détail antécédent autre cancer` <-
   wrangling_clinical_data$`détail antécédent autre cancer` %>% as.character()
 
@@ -167,7 +173,7 @@ wrangling_clinical_data2 <-
   rename(cancer_history_details = `détail antécédent autre cancer` ) %>%
   rename(immunosuppression_history = `antécédents immunosuppression` ) %>%
   rename(symptoms = `Symptômes` ) %>%
-  rename(dyspnea_MRCS = `dyspnée MRCS` ) %>%
+  rename(dyspnea_mMRC = `dyspnée MRCS` ) %>%
   rename(TDM = TDM ) %>%
   rename(main_lesion_size_cm = `taille lésion principale (cm)` ) %>%
   rename(atelectasia = atélectasie ) %>%
@@ -248,7 +254,7 @@ wrangling_clinical_data2 <-
   rename(sample_origin = `pathologie: origine du prélèvement` ) %>%    
   rename(histology = `type histologique lésion principale` ) %>%    
   rename(malignancy = `pathologie benigne ou maligne` ) %>%    
-  rename(adenocarcinome_subtypes = `sous-type  adk lésion principale` ) %>%    
+  rename(adenocarcinoma_subtypes = `sous-type  adk lésion principale` ) %>%    
   rename(TTF1 = `TTF1 lésion principale` ) %>%    
   rename(second_lesion = `2ème lésion` ) %>%    
   rename(EGFR = `EGFR lésion principale` ) %>%    
@@ -270,19 +276,28 @@ wrangling_clinical_data2 <-
   rename(pN2_details_location = `si pN2_localisation` ) %>%    
   rename(last_news_date = `date des dernières nouvelle` ) %>%  
   rename(status_last_news = `état à la date des dernières nouvelle` ) %>%  
-  rename(cancer_recurrence_date = `date récidive` ) %>%    
   rename(death_cause = `cause du décès` ) %>% 
-  rename(TO20T = TO20T ) %>%    
-  rename(MCT1T = MCT1T ) %>%    
-  rename(MCT4T = MCT4T ) %>%    
-  rename(sctne = sctne ) %>%    
-  rename(sct14 = sct14 ) %>%    
-  rename(TO20I = TO20I ) %>%    
-  rename(MCT1I = MCT1I ) %>%    
-  rename(MCT1I = MCT1I ) %>%    
-  rename(scoim = scoim ) %>%    
-  rename(sci14 = sci14 ) %>%
   rename(p_pleura = `p plèvre lésion principale`)
+
+#adk subtypes
+wrangling_clinical_data2$adenocarcinoma_subtypes  <-
+  ifelse(wrangling_clinical_data2$histology != 9,
+         yes = 4,
+         no = wrangling_clinical_data2$adenocarcinoma_subtypes)
+
+  
+wrangling_clinical_data2$adenocarcinoma_subtypes <-
+  ifelse(wrangling_clinical_data2$histology == 9 & 
+         is.na(wrangling_clinical_data2$adenocarcinoma_subtypes)  == T,
+       yes = NA,
+       no = wrangling_clinical_data2$adenocarcinoma_subtypes)
+
+wrangling_clinical_data2$adenocarcinoma_subtypes <-
+  ifelse(wrangling_clinical_data2$histology == 9 & 
+           wrangling_clinical_data2$adenocarcinoma_subtypes  == 4,
+         yes = NA,
+         no = wrangling_clinical_data2$adenocarcinoma_subtypes)
+
 
 #view(wrangling_clinical_data2)
 
@@ -293,14 +308,14 @@ wrangling_clinical_data2 <-
 #view(knn_data)
 knn_data <-
   wrangling_clinical_data2 %>%
-  select(-cancer_recurrence_date) %>% # remove the non numerical value
-  select(-last_news_date) %>%
+  select(-last_news_date) %>% # remove the non numerical value
   select(-cancer_history_details) %>%
   select(-operation_date) %>%
   select(-second_stay) %>% 
-  select(-c("TO20T":"sci14")) %>%
+  select(-c("EGFR":"p40")) %>%
   select(-Diamic) %>%
-  VIM::kNN(k = 5)
+  VIM::kNN(k = 15, 
+           weights = "auto")
 
 knn_data_output <-
   knn_data %>%  
@@ -308,33 +323,29 @@ knn_data_output <-
   mutate(samples_ID = paste0( "S_", row_number() ) ) %>%
   #column_to_rownames("samples_ID") %>% #pas obligatoirement
   mutate(Diamic = wrangling_clinical_data2$Diamic ) %>% #Identifiant histo
-  mutate(cancer_recurrence_date = wrangling_clinical_data2$cancer_recurrence_date) %>%
   mutate(last_news_date = wrangling_clinical_data2$last_news_date) %>%
   mutate(cancer_history_details = wrangling_clinical_data2$cancer_history_details) %>%
   mutate(operation_date = wrangling_clinical_data2$operation_date) %>%
   mutate(second_stay = wrangling_clinical_data2$second_stay) %>%
-  mutate(TO20T = wrangling_clinical_data2$TO20T) %>%
-  mutate(MCT1T = wrangling_clinical_data2$MCT1T) %>%
-  mutate(MCT4T = wrangling_clinical_data2$MCT4T) %>%
-  mutate(sctne = wrangling_clinical_data2$sctne) %>%
-  mutate(sct14 = wrangling_clinical_data2$sct14) %>%
-  mutate(TO20I = wrangling_clinical_data2$TO20I) %>%
-  mutate(MCT1I = wrangling_clinical_data2$MCT1I) %>%
-  mutate(MCT4I = wrangling_clinical_data2$MCT4I) %>%
-  mutate(scoim = wrangling_clinical_data2$scoim) %>%
-  mutate(sci14 = wrangling_clinical_data2$sci14)
+  mutate(EGFR = wrangling_clinical_data2$EGFR) %>%
+  mutate(KRAS = wrangling_clinical_data2$KRAS) %>%
+  mutate(ALK = wrangling_clinical_data2$ALK) %>%
+  mutate(HER2 = wrangling_clinical_data2$HER2) %>%
+  mutate(BRAF = wrangling_clinical_data2$BRAF) %>%
+  mutate(ROS = wrangling_clinical_data2$ROS) %>%
+  mutate(PDL1 = wrangling_clinical_data2$PDL1) %>%
+  mutate(p40 = wrangling_clinical_data2$p40)
 
 knn_data_output <-
   knn_data_output %>%
-    select(c(Diamic, samples_ID,histology, age, sex, operation_date, second_stay, everything()))
-
+  select(c(Diamic, samples_ID,histology, age, sex, operation_date, second_stay, everything()))
 
 # Uncode the dataframe ####
 str(knn_data_output, list.len = ncol(knn_data_output) )
 
 wrangling_clinical_data3 <-
   knn_data_output
-
+#view(knn_data_output)
 #sex 
 #wrangling_clinical_data3$sex <- 
 # ifelse(test = knn_data_output$sex == 1, 
@@ -411,9 +422,6 @@ wrangling_clinical_data3$symptoms <-
 levels(wrangling_clinical_data3$symptoms) <- 
   list(symptoms = "1", 
        no_symptom = "2")
-
-# Dyspnea 
-# A FAIRE QUAND J AURAI LA REPONSE DE MATHILDE SUR LE MRCS
 
 # TDM
 wrangling_clinical_data3$TDM <- 
@@ -554,10 +562,10 @@ wrangling_clinical_data3$bronchial_fibroscopy <-
   factor(knn_data_output$bronchial_fibroscopy)
 
 levels(wrangling_clinical_data3$bronchial_fibroscopy) <- 
-  list(no_extrathoracic_metastasis = "1", 
-       adrenal_extrathoracic_metastasis = "2", 
-       liver_extrathoracic_metastasis = "3", 
-       bone_extrathoracic_metastasis = "4")
+  list(normal_mucosa = "1", 
+       inflammatory_mucosa  = "2", 
+       infiltrated_mucosa = "3", 
+       tumor_bud = "4")
 
 
 # main_lesion_PET_fixation
@@ -625,7 +633,7 @@ levels(wrangling_clinical_data3$initial_treatment_decision) <-
        #exclusive_chemotherapy = "3", 
        #exclusive_radiotherapy = "4",
        #induction_radiochemotherapy = "5",
-       exclusive_radiochemotherapy = "6"#,
+       #exclusive_radiochemotherapy = "6"#,
        #radiofrequency = "7",
        #targeted_therapy = "8",
        #exclusive_supportive_care = "9"
@@ -701,7 +709,7 @@ wrangling_clinical_data3$lung_enlargement <-
   factor(knn_data_output$lung_enlargement)
 
 levels(wrangling_clinical_data3$lung_enlargement) <- 
-  list(parenchyma_adjacent_lobe = "1", 
+  list(#parenchyma_adjacent_lobe = "1", 
        bronchial  = "2",
        #arterial = "3", 
        #bronchovascular = "4",
@@ -789,13 +797,15 @@ levels(wrangling_clinical_data3$malignancy) <-
        malignant ="2")
 
 
-# adenocarcinome_subtypes
-wrangling_clinical_data3$adenocarcinome_subtypes <- 
-  factor(knn_data_output$adenocarcinome_subtypes )
+# adenocarcinoma_subtypes
+wrangling_clinical_data3$adenocarcinoma_subtypes <- 
+  factor(knn_data_output$adenocarcinoma_subtypes )
 
-levels(wrangling_clinical_data3$adenocarcinome_subtypes) <- 
+levels(wrangling_clinical_data3$adenocarcinoma_subtypes) <- 
   list(low_grade ="1", intermediate_grade ="2",
-       high_grade = "3", other_histology_type = "4")
+       high_grade = "3", other_histology_type = "4"#, 
+       #other_histology_type = "5"
+       )
 
 # TTF1
 wrangling_clinical_data3$TTF1 <- 
@@ -820,6 +830,7 @@ levels(wrangling_clinical_data3$pT) <-
 wrangling_clinical_data3$p_pleura <- 
   factor(knn_data_output$p_pleura )
 
+
 levels(wrangling_clinical_data3$p_pleura) <- 
   list(pl0 ="1", pl1 ="2",
        pl2 = "3", pl3 = "4")
@@ -829,7 +840,7 @@ wrangling_clinical_data3$second_lesion <-
   factor(knn_data_output$second_lesion )
 
 levels(wrangling_clinical_data3$second_lesion) <- 
-  list( yes_synchrone ="2", no ="1" #,
+  list( yes_synchrone_lesion ="2", no_second_lesion ="1" #,
        #yes_metachrone = "3"
        )
 
@@ -937,8 +948,8 @@ levels(wrangling_clinical_data3$histology) <-
        #typical_carcinoid = "3", 
        #atypical_carcinoid = "4",
        sarcomatoid_carcinoma = "12",
-       carcinoid = "5", 
-       basaloid_squamous_cell_carcinoma = "7"#, 
+       carcinoid = "5"#, 
+       #basaloid_squamous_cell_carcinoma = "7", 
        #metastasis_other_cancer = "13"
        )
 
@@ -1019,25 +1030,89 @@ wrangling_clinical_data3$cancer_history_details <-
   str_replace("8", "other_cancer_history") %>%
   str_replace("9", "no_cancer_history")
 
-wrangling_clinical_data4 <-
-  wrangling_clinical_data3
 
-wrangling_clinical_data4 %>%
-  writexl::write_xlsx("./Preprocessed_data/Database_recode_V1.xlsx")
+# Fold Change for bio ####
+#wrangling_clinical_data3 <-
+  wrangling_clinical_data3 %>%
+  mutate(logFC_CRP_CRPD1_r0 = log(CRP_D1/CRP)) %>%
+  mutate(logFC_CRP_CRPD3_r1 = log(CRP_D3/CRP)) %>%
+  mutate(logFC_CRP_CRPD5_r2 = log(CRP_D5/CRP)) %>%
+  mutate(logFC_CRPD1_CRPD3_r3 = log(CRP_D3/CRP_D1)) %>%
+  mutate(logFC_CRPD1_CRPD5_r4 = log(CRP_D5/CRP_D1)) %>%
+  mutate(logFC_CRPD3_CRPD5_r5 = log(CRP_D5/CRP_D3)) %>%
+  
+  mutate(logFC_hemoglobin_hemoglobinD1_r0 = log(hemoglobin_D1/hemoglobin)) %>%
+  mutate(logFC_hemoglobin_hemoglobinD3_r1 = log(hemoglobin_D3/hemoglobin)) %>%
+  mutate(logFC_hemoglobin_hemoglobinD5_r2 = log(hemoglobin_D5/hemoglobin)) %>%
+  mutate(logFC_hemoglobinD1_hemoglobinD3_r3 = log(hemoglobin_D3/hemoglobin_D1)) %>%
+  mutate(logFC_hemoglobinD1_hemoglobinD5_r4 = log(hemoglobin_D5/hemoglobin_D1)) %>%
+  mutate(logFC_hemoglobinD3_hemoglobinD5_r5 = log(hemoglobin_D5/hemoglobin_D3)) %>%
+  
+  mutate(logFC_platelets_plateletsD1_r0 = log(platelets_D1/platelets)) %>%
+  mutate(logFC_platelets_plateletsD3_r1 = log(platelets_D3/platelets)) %>%
+  mutate(logFC_platelets_plateletsD5_r2 = log(platelets_D5/platelets)) %>%
+  mutate(logFC_plateletsD1_plateletsD3_r3 = log(platelets_D3/platelets_D1)) %>%
+  mutate(logFC_plateletsD1_plateletsD5_r4 = log(platelets_D5/platelets_D1)) %>%
+  mutate(logFC_plateletsD3_plateletsD5_r5 = log(platelets_D5/platelets_D3)) %>%
+  
+  mutate(logFC_leukocytes_leukocytesD1_r0 = log(leukocytes_D1/leukocytes)) %>%
+  mutate(logFC_leukocytes_leukocytesD3_r1 = log(leukocytes_D3/leukocytes)) %>%
+  mutate(logFC_leukocytes_leukocytesD5_r2 = log(leukocytes_D5/leukocytes)) %>%
+  mutate(logFC_leukocytesD1_leukocytesD3_r3 = log(leukocytes_D3/leukocytes_D1)) %>%
+  mutate(logFC_leukocytesD1_leukocytesD5_r4 = log(leukocytes_D5/leukocytes_D1)) %>%
+  mutate(logFC_leukocytesD3_leukocytesD5_r5 = log(leukocytes_D5/leukocytes_D3)) %>%
+  
+  mutate(logFC_lymphocytes_lymphocytesD1_r0 = log(lymphocytes_D1/lymphocytes)) %>%
+  mutate(logFC_lymphocytes_lymphocytesD3_r1 = log(lymphocytes_D3/lymphocytes)) %>%
+  mutate(logFC_lymphocytes_lymphocytesD5_r2 = log(lymphocytes_D5/lymphocytes)) %>%
+  mutate(logFC_lymphocytesD1_lymphocytesD3_r3 = log(lymphocytes_D3/lymphocytes_D1)) %>%
+  mutate(logFC_lymphocytesD1_lymphocytesD5_r4 = log(lymphocytes_D5/lymphocytes_D1)) %>%
+  mutate(logFC_lymphocytesD3_lymphocytesD5_r5 = log(lymphocytes_D5/lymphocytes_D3)) %>%
+  
+  
+  mutate(logFC_neutrophils_neutrophilsD1_r0 = log(neutrophils_D1/neutrophils)) %>%
+  mutate(logFC_neutrophils_neutrophilsD3_r1 = log(neutrophils_D3/neutrophils)) %>%
+  mutate(logFC_neutrophils_neutrophilsD5_r2 = log(neutrophils_D5/neutrophils)) %>%
+  mutate(logFC_neutrophilsD1_neutrophilsD3_r3 = log(neutrophils_D3/neutrophils_D1)) %>%
+  mutate(logFC_neutrophilsD1_neutrophilsD5_r4 = log(neutrophils_D5/neutrophils_D1)) %>%
+  mutate(logFC_neutrophilsD3_neutrophilsD5_r5 = log(neutrophils_D5/neutrophils_D3))
 
 # Table summary ####
-wrangling_clinical_data4  %>%
+wrangling_clinical_data3 %>%
   select(-Diamic) %>%
   select(-samples_ID) %>%
-  select(-c(TO20T:sci14)) %>%
-  tbl_summary() 
+ tbl_summary() 
 
+wrangling_clinical_data3 %>%
+  writexl::write_xlsx("./Preprocessed_data/Database_recode_V1.xlsx")
+
+# Refactor some variables for better analysis (including histology) ####
+wrangling_clinical_data4 <-
+  wrangling_clinical_data3 %>%
+  select(-emergency) %>%
+  select(-surgical_contamination_class)
+
+wrangling_clinical_data4$histology <-
+  ifelse(wrangling_clinical_data3$histology != "adenocarcinoma" & 
+           wrangling_clinical_data3$histology != "squamous_cell_carcinoma",
+         yes = 3,
+         no = wrangling_clinical_data3$histology)
+
+wrangling_clinical_data4$histology <- 
+  factor(wrangling_clinical_data4$histology)
+
+levels(wrangling_clinical_data4$histology) <- 
+  list(adenocarcinoma ="1", squamous_cell_carcinoma ="2", other_histology_types ="3")
+
+wrangling_clinical_data4 %>%
+  writexl::write_xlsx("./Preprocessed_data/Database_recode_V2.xlsx")
+
+    
+# Table summary by categories ####
 #by phenotype
 wrangling_clinical_data4  %>%
   select(-Diamic) %>%
   select(-samples_ID) %>%
-  select(-c(TO20T:sci14)) %>%
   tbl_summary(by = "histology") %>%
   add_p() %>%
   add_q() 
-

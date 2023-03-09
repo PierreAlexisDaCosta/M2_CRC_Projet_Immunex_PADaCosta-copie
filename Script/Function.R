@@ -13,12 +13,11 @@ my_theme <- theme(
   text = element_text(face = "bold")
 )
 
-
-
 # Colour ####
 
-group_color <- 
-  c("X" = "#c2be4a","Y" = "#de9a33", "Z" = "#94160d" )
+histology_color <- 
+  c("adenocarcinoma" = "#c2be4a","squamous_cell_carcinoma" = "#de9a33", "other_histology_types" = "#94160d" )
 
 
-
+MCA_color <- 
+  c("histology" = "#de9a33", "significant_variables" = "#94160d")
