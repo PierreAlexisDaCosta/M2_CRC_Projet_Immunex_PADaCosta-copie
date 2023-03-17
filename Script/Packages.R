@@ -51,8 +51,9 @@ usethis::create_github_token()
 #it will never appear again!).
 # Token_name : M2_CRC_Immunex_master_project_I2P 
 # Token : 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
-gitcreds::gitcreds_set()
+#gitcreds::gitcreds_set()
 
-usethis::use_git()
+#usethis::use_git()
 usethis::use_github()
+usethis::use_git_remote("origin", url = NULL, overwrite = TRUE)
 
