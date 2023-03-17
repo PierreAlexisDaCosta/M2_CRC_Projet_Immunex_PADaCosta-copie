@@ -107,23 +107,37 @@ fit_sex %>%
   my_theme +
   theme(legend.position = "top")
 
-# Cox regression --> choose some covariates (2 or 3): Table + plot  HR ####
+# Univariate Cox regression HR ####
 cox <- 
   coxph(Surv(os_days, status_last_news) ~ age + sex + 
           histology + length_of_stay,
         data = survival_data)
 #summary(cox)
-cox %>%
-  tbl_regression(
-    exp = TRUE
-    )
+
+HR_univariate_plot<-
+  survival_data %>% 
+  select(-c("samples_ID", "operation_date", 
+            "last_news_date", "Diamic")) %>% 
+  select(-c(EGFR:p40)) %>% 
+  #select(c(status_last_news, age)) %>%
+  tbl_uvregression(
+    method = coxph,
+    y = Surv(os_days, status_last_news),
+    exponentiate = TRUE,
+    pvalue_fun = ~ style_pvalue(.x, digits = 2)
+  ) %>%
+  add_global_p() %>% # add global p-value
+  add_q() %>% # adjusts global p-values for multiple testing
+  bold_p() %>% # bold p-values under a given threshold (default 0.05)
+  bold_p(t = 0.10, q = TRUE) %>% # now bold q-values under the threshold of 0.10
+  bold_labels()
+
+?tbl_uvregression
 
 cox_fit <- survfit(cox)
 
 autoplot(cox_fit) +
   my_theme
-
-
 
 
 # Random Forest ####
@@ -168,3 +182,5 @@ head(vi)
 #    r_fit$prediction.error) #Prediction
 
 # Surement entrainer sur un training set
+
+tbl_merge(list(HR_univariate_plot, OR_univariate_plot))
