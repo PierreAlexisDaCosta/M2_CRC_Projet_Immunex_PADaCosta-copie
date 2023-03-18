@@ -22,7 +22,7 @@ MCA_color <-
   c("histology" = "#de9a33", "significant_variables" = "#94160d")
 
 # Variable ####
-explanatory_vars <- c("age", "sex", "histology", "length_of_stay",	
+explanatory_vars <- c("age", "sex", #	"histology",
                      "performance_status",	"height",	"weight",	"bmi",
                      "body_surface", "weight_loss",	"smoking",	"pack_years",
                      "weaning",	"significant_comorbidities", "ischemic_heart_disease_history",	
@@ -48,44 +48,49 @@ explanatory_vars <- c("age", "sex", "histology", "length_of_stay",
                      "PDL1",	"pT_size",	"pT",	"p_pleura",	"embolism",
                      "stroma_lymphocyte_population",	"pN")
 
+
 # Regression function ####
-univariate_analysis <-
-  function(glm_type, data, analyse_type, explanatory_vars){
+
+explanatory_vars <- c("age", "sex")
+
+multivariate_glm_analysis <-
+  function(glm_type, data, explanatory_vars){
   explanatory_vars %>%       # begin with variables of interest
-  str_c("status_last_news ~ ", .) %>%         # combine each variable into formula ("outcome ~ variable of interest")
+  str_c("status_last_news ~ histology +", .) %>%         # combine each variable into formula ("outcome ~ variable of interest")
   # iterate through each univariate formula
   map(                               
     .f = ~glm(                       # pass the formulas one-by-one to glm()
       formula = as.formula(.x),      # within glm(), the string formula is .x
       family = glm_type,           # specify type of glm (logistic)
-      data = data)) %>%          # dataset
+      data = data)) %>%       # dataset
   # tidy up each of the glm regression outputs from above
   map(
-    .f = ~tidy(
+    .f = ~tbl_regression(
       .x, 
-      exponentiate = TRUE,           # exponentiate 
-      conf.int = TRUE)) %>%          # return confidence intervals
-  # collapse the list of regression outputs in to one data frame
-  bind_rows(.id = "id") %>% 
-  # round all numeric columns
-  mutate(across(where(is.numeric), round, digits = 4)) %>%
-  mutate(`CI 95%` = paste0(conf.low, ", ", conf.high)) %>%
-  select(term, estimate, `CI 95%`, p.value) %>%
-  rename(Characteristic = term) %>%
-  rename(!!sym(analyse_type) := estimate)
-}                    
-                     
-removing_intercept_value <-
-  function(data, name, row_number){
-    data[row_number,]$Characteristic <- paste0(name, " (Intercept)")
-    data[row_number,]$OR <- "――"
-    data[row_number,]$`CI 95%` <- "————"
-    data[row_number,]$p.value <- "——"
-    print(data[row_number,])
+      include = !'histology',
+      exponentiate = TRUE)) %>%
+  tbl_stack()
+
+}
+
+multivariate_glm_analysis(glm_type = binomial, 
+                        data = survival_data, 
+                        explanatory_vars = explanatory_vars)
+
+univariate_glm_analysis <-
+  function(glm_type, data, explanatory_vars){
+    explanatory_vars %>%       # begin with variables of interest
+      str_c("status_last_news ~ ", .) %>%         # combine each variable into formula ("outcome ~ variable of interest")
+      # iterate through each univariate formula
+      map(                               
+        .f = ~glm(                       # pass the formulas one-by-one to glm()
+          formula = as.formula(.x),      # within glm(), the string formula is .x
+          family = glm_type,           # specify type of glm (logistic)
+          data = data)) %>%       # dataset
+      # tidy up each of the glm regression outputs from above
+      map(
+        .f = ~tbl_regression(
+          .x, 
+          exponentiate = TRUE)) %>%
+      tbl_stack()
   }
-
-
-
-
-                     
-                     

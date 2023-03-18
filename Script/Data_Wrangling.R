@@ -325,7 +325,9 @@ wrangling_clinical_data2_2 <-
   select(-LVEF) %>%
   select(-c(CRP_D5:neutrophils_D5)) %>%
   select(-initial_treatment_decision) %>%
-  select(-postoperative_death)
+  select(-postoperative_death) %>%
+  select(-length_of_stay)
+  
 
 
 #rowSums(is.na(wrangling_clinical_data2_2 %>%
@@ -1156,7 +1158,7 @@ wrangling_clinical_data4$performance_status <-
 wrangling_clinical_data_def <-
   wrangling_clinical_data4
 
-str(wrangling_clinical_data_def$stroma_lymphocyte_population)
+
 
 # Table summary by categories ####
 wrangling_clinical_data_def  %>%
