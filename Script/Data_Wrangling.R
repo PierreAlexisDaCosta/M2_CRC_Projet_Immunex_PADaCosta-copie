@@ -345,8 +345,8 @@ knn_data <-
 
 knn_data_output <-
   knn_data %>%  
-  select(-c(age_imp:status_last_news_imp)) %>%
   mutate(samples_ID = paste0( "S_", row_number() ) ) %>%
+  select(-c(age_imp:status_last_news_imp)) %>%
   #column_to_rownames("samples_ID") %>% #pas obligatoirement
   mutate(Diamic = wrangling_clinical_data2$Diamic ) %>% #Identifiant histo
   mutate(last_news_date = wrangling_clinical_data2$last_news_date) %>%

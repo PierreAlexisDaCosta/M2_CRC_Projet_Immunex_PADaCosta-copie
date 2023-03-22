@@ -51,7 +51,6 @@ explanatory_vars <- c("age", "sex", #	"histology",
 
 # Regression function ####
 
-explanatory_vars <- c("age", "sex")
 
 multivariate_glm_analysis <-
   function(glm_type, data, explanatory_vars){
@@ -73,9 +72,6 @@ multivariate_glm_analysis <-
 
 }
 
-multivariate_glm_analysis(glm_type = binomial, 
-                        data = survival_data, 
-                        explanatory_vars = explanatory_vars)
 
 univariate_glm_analysis <-
   function(glm_type, data, explanatory_vars){
@@ -94,3 +90,7 @@ univariate_glm_analysis <-
           exponentiate = TRUE)) %>%
       tbl_stack()
   }
+
+
+
+

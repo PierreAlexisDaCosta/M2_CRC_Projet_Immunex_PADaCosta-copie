@@ -179,7 +179,6 @@ OR_univariate_table <-
                         data = survival_data, 
                         explanatory_vars = explanatory_vars)
 
-glm(status_last_news ~ prealbuminemia, family = binomial)
 # OR multivariate analysis ####
 OR_adjusted_table <-
   multivariate_glm_analysis(glm_type = binomial, 
@@ -193,4 +192,21 @@ tbl_merge(list(test, test_2),
 
 
 # RR univariate table #### IL Y A DES COVARIANCES ETC J'AI L'IMPRESSION
+
+explanatory_vars %>%       # begin with variables of interest
+  str_c("status_last_news ~ ", .) %>%         # combine each variable into formula ("outcome ~ variable of interest")
+  # iterate through each univariate formula
+  map(                               
+    .f = ~glm(                       # pass the formulas one-by-one to glm()
+      formula = as.formula(.x),      # within glm(), the string formula is .x
+      family = binomial(link = "log"),           # specify type of glm (logistic)
+      data = survival_data))  %>%       # dataset
+  # tidy up each of the glm regression outputs from above
+  map(
+    .f = ~tbl_regression(
+      .x, 
+      exponentiate = TRUE,
+      tidy_fun = broom.helpers::tidy_parameters)) %>%
+  tbl_stack()
+
 
