@@ -16,6 +16,11 @@ wrangling_clinical_data_def <-
     age > 80 & age <= 85 ~ "80-85",
     age > 85 & age <= 90 ~ "80-85"))
 
+
+  
+
+
+
   # Convert to factor
 wrangling_clinical_data_def$age_group <-
   factor(wrangling_clinical_data_def$age_group)

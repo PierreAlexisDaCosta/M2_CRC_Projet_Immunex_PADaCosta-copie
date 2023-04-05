@@ -22,7 +22,7 @@ MCA_color <-
   c("histology" = "#de9a33", "significant_variables" = "#94160d")
 
 # Variable ####
-explanatory_vars <- c("age", "sex", #	"histology",
+explanatory_vars <- c("age", "sex", #	"histology", "stage",
                      "performance_status",	"height",	"weight",	"bmi",
                      "body_surface", "weight_loss",	"smoking",	"pack_years",
                      "weaning",	"significant_comorbidities", "ischemic_heart_disease_history",	

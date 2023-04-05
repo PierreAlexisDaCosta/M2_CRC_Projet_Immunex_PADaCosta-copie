@@ -275,8 +275,42 @@ wrangling_clinical_data2 <-
   rename(last_news_date = `date des dernières nouvelle` ) %>%  
   rename(status_last_news = `état à la date des dernières nouvelle` ) %>%  
   rename(death_cause = `cause du décès` ) %>% 
-  rename(p_pleura = `p plèvre lésion principale`)
+  rename(p_pleura = `p plèvre lésion principale`) %>%
+  mutate(stage = ifelse(pT == "10",
+                        yes = "0",
+                        no = ifelse(
+                          (pT == "1" | pT == "2" | pT == "3") & pN == "1",
+                                    yes = "I",
+                                    no = ifelse(
+                                      (pT == "1" | pT == "2" | pT == "3") & pN == "2",
+                                                yes = "II",
+                                                no = ifelse(
+                                                  (pT == "1" | pT == "2" | pT == "3") & pN == "3",
+                                                            yes = "IV",
+                                                            no = ifelse((pT == "4"| pT == "5") & pN =="1",
+                                                                        yes = "II",
+                                                                        no = ifelse(
+                                                                          (pT == "4"| pT == "5") & pN =="2",
+                                                                                    yes = "III",
+                                                                                    no = ifelse((pT == "4"| pT == "5") & pN =="3",
+                                                                                        yes = "IV",
+                                                                                        no = ifelse(pT == "6" & (pN =="1" | pN =="2") ,
+                                                                                                    yes = "III",
+                                                                                                    no = ifelse(pT == "6" & pN =="3",
+                                                                                                                yes = "IV",
+                                                                                                                no = ifelse(pT == "7" & (pN =="1" | pN =="2"),
+                                                                                                                            yes = "III",
+                                                                                                                            no =  ifelse(pT == "7" & pN =="3",
+                                                                                                                                         yes = "IV",
+                                                                                                                                         no = NA))))))))))))
+    
+    
 
+wrangling_clinical_data2$stage <-
+  factor(wrangling_clinical_data2$stage)
+
+
+###### 
 #adk subtypes
 wrangling_clinical_data2$adenocarcinoma_subtypes  <-
   ifelse(wrangling_clinical_data2$histology != 9,
@@ -346,7 +380,7 @@ knn_data <-
 knn_data_output <-
   knn_data %>%  
   mutate(samples_ID = paste0( "S_", row_number() ) ) %>%
-  select(-c(age_imp:status_last_news_imp)) %>%
+  select(-c(age_imp:stage_imp)) %>%
   #column_to_rownames("samples_ID") %>% #pas obligatoirement
   mutate(Diamic = wrangling_clinical_data2$Diamic ) %>% #Identifiant histo
   mutate(last_news_date = wrangling_clinical_data2$last_news_date) %>%
@@ -1161,17 +1195,19 @@ wrangling_clinical_data_def <-
 
 
 # Table summary by categories ####
-wrangling_clinical_data_def  %>%
+tbl_sum <-
+  wrangling_clinical_data_def  %>%
   select(-Diamic) %>%
   select(-samples_ID) %>%
   tbl_summary()
 
+tbl_sum %>% gtsummary::as_tibble() %>% writexl::write_xlsx("./Result/Clinical_summary.xlsx")
 # Removing columns with few sample in charactestic ####
 
 wrangling_clinical_data_def %>%
   writexl::write_xlsx("./Preprocessed_data/Database_recode_V2.xlsx")
 
-
+wrangling_clinical_data_def %>% as_tibble()
 # #by phenotype
 # wrangling_clinical_data4  %>%
 #   select(-Diamic) %>%

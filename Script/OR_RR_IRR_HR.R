@@ -209,4 +209,28 @@ explanatory_vars %>%       # begin with variables of interest
       tidy_fun = broom.helpers::tidy_parameters)) %>%
   tbl_stack()
 
+#HR univariate analysis ####
+?coxph
+coxph(Surv(os_days, status_last_news) ~ age,
+      data = survival_data)
+
+explanatory_vars <-
+  "age"
+explanatory_vars %>%       # begin with variables of interest
+  str_c("Surv(os_days, status_last_news) ~ ", .) %>%         # combine each variable into formula ("outcome ~ variable of interest")
+  # iterate through each univariate formula
+  map(                               
+    .f = ~coxph(                       # pass the formulas one-by-one to glm()
+      formula = as.formula(.x),      # within glm(), the string formula is .x          # specify type of glm (logistic)
+      data = survival_data))  %>%       # dataset
+  # tidy up each of the glm regression outputs from above
+  map(
+    .f = ~tbl_regression(
+      .x, 
+      exponentiate = TRUE#,
+      #tidy_fun = broom.helpers::tidy_parameters
+      )) %>%
+  tbl_stack()
+
+
 
