@@ -50,7 +50,7 @@ usethis::create_github_token()
 # where you’ll give your token a name and copy it (don’t lose it because
 # it will never appear again!).
 # Token_name : M2_CRC_Immunex_master_project_I2P
-# Token : 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
+# Token : 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
 gitcreds::gitcreds_set()
 
 usethis::use_git()
